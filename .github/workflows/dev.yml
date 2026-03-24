@@ -124,12 +124,14 @@ jobs:
         if: runner.os == 'Windows'
         run: pnpm build:win -- --x64 --arm64
         env:
+          VITE_BUILD_TYPE: dev
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build macOS Universal App
         if: runner.os == 'macOS'
         run: pnpm build:mac -- --x64 --arm64
         shell: bash
         env:
+          VITE_BUILD_TYPE: dev
           CSC_IDENTITY_AUTO_DISCOVERY: false
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Linux x64 & ARM64 App
@@ -137,6 +139,7 @@ jobs:
         run: pnpm build:linux -- --x64 --arm64
         shell: bash
         env:
+          VITE_BUILD_TYPE: dev
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 分别上传
