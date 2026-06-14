@@ -24,7 +24,7 @@ const initAppServer = async () => {
     server.register(fastifyCookie);
     server.register(fastifyMultipart, {
       limits: {
-        fileSize: uploadFileSizeLimit
+        fileSize: uploadFileSizeLimit,
       },
     });
     // 生产环境启用静态文件

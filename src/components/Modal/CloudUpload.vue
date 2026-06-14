@@ -12,9 +12,7 @@
         <div class="upload-area">
           <SvgIcon name="Cloud" :size="48" />
           <n-text class="upload-hint">点击或拖拽文件到此区域上传</n-text>
-          <n-text depth="3" class="upload-desc">
-            支持多文件上传
-          </n-text>
+          <n-text depth="3" class="upload-desc"> 支持多文件上传 </n-text>
         </div>
       </n-upload-dragger>
     </n-upload>
@@ -40,12 +38,14 @@
               </n-flex>
             </n-flex>
             <n-flex justify="space-between" align="center">
-              <n-text :type="item.error ? 'error' : item.status === 'success' ? 'success' : 'info'" depth="2" style="font-size: 13px">
+              <n-text
+                :type="item.error ? 'error' : item.status === 'success' ? 'success' : 'info'"
+                depth="2"
+                style="font-size: 13px"
+              >
                 {{ item.statusText }}
               </n-text>
-              <n-text depth="3" style="font-size: 12px">
-                {{ item.percent }}%
-              </n-text>
+              <n-text depth="3" style="font-size: 12px"> {{ item.percent }}% </n-text>
             </n-flex>
             <n-progress
               :percentage="item.percent"
@@ -123,13 +123,13 @@ watch(
 const beforeUpload = (data: { file: { file: File | null }; fileList: any[] }) => {
   const file = data.file.file;
   if (!file) return false;
-  
+
   // 检查是否为音频文件
   if (!file.type.startsWith("audio/")) {
     window.$message.warning(`${file.name} 不是音频文件`);
     return false;
   }
-  
+
   return true;
 };
 
@@ -146,11 +146,11 @@ const isFileInQueue = (file: File): boolean => {
 // 重试上传失败的文件
 const retryUpload = async (item: UploadItem) => {
   // 重置状态
-  item.status = 'pending';
-  item.statusText = '准备中...';
+  item.status = "pending";
+  item.statusText = "准备中...";
   item.percent = 0;
   item.error = false;
-  
+
   // 如果当前没有正在上传的任务，立即开始处理
   if (!isUploading.value) {
     isUploading.value = true;
@@ -239,20 +239,23 @@ const uploadFileProxy = async (item: UploadItem) => {
   item.percent = 10;
 
   await uploadCloudSong(item.file);
-  
+
   item.percent = 100;
 };
 
 // 客户端直传
 const uploadFileDirect = async (item: UploadItem) => {
   item.status = "uploading";
-  
+
   // 计算MD5
   item.statusText = "计算文件MD5...";
   item.percent = 5;
   const fileMd5 = await calculateMD5(item.file);
   const ext = item.file.name.split(".").pop() || "mp3";
-  const filename = item.file.name.replace("." + ext, "").replace(/\s/g, "").replace(/\./g, "_");
+  const filename = item.file.name
+    .replace("." + ext, "")
+    .replace(/\s/g, "")
+    .replace(/\./g, "_");
 
   // 获取上传凭证
   item.statusText = "获取上传凭证...";

@@ -109,11 +109,7 @@ class LyricManager {
    * @param type 缓存类型
    * @param data 数据
    */
-  private async saveRawLyricCache(
-    id: number | string,
-    type: "lrc" | "ttml" | "qrc",
-    data: string,
-  ) {
+  private async saveRawLyricCache(id: number | string, type: "lrc" | "ttml" | "qrc", data: string) {
     const settingStore = useSettingStore();
     if (!isElectron || !settingStore.cacheEnabled) return;
     try {
@@ -765,7 +761,7 @@ class LyricManager {
             word: line.words?.map((w) => w.word)?.join("") || "",
             startTime: line.startTime || 0,
             endTime: line.endTime || 0,
-            romanWord: line.words?.map((w) => w.romanWord)?.join("") || "",
+            romanWord: line.words?.map((w) => w.romanWord)?.join("") || undefined,
           },
         ],
       }));

@@ -104,11 +104,7 @@ export const importCloudSong = (
  * @param {number} fileSize - 文件大小
  * @param {string} filename - 文件名
  */
-export const getCloudUploadToken = (
-  md5: string,
-  fileSize: number,
-  filename: string,
-) => {
+export const getCloudUploadToken = (md5: string, fileSize: number, filename: string) => {
   return request({
     url: "/cloud/upload/token",
     method: "POST",

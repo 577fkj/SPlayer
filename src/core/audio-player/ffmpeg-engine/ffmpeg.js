@@ -241,7 +241,7 @@ function findWasmBinary() {
     return locateFile("ffmpeg.wasm");
   }
   // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
-  return new URL("ffmpeg.wasm", import.meta.url).href;
+  return new URL(/* @vite-ignore */ "ffmpeg.wasm", import.meta.url).href;
 }
 
 function getBinarySync(file) {
