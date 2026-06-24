@@ -89,6 +89,27 @@
         <n-text v-if="yunbeiTip" class="yunbei-tip" :depth="3">
           {{ yunbeiTip }}
         </n-text>
+        <n-flex :size="8">
+          <n-button
+            :loading="dailySignLoading"
+            secondary
+            size="small"
+            type="primary"
+            @click.stop="handleDailySign"
+          >
+            普通签到
+          </n-button>
+          <n-button
+            v-if="userYunbeiData.signed !== true"
+            :loading="yunbeiSignLoading"
+            secondary
+            size="small"
+            type="primary"
+            @click.stop="handleYunbeiSign"
+          >
+            云贝签到
+          </n-button>
+        </n-flex>
       </n-flex>
       <n-divider v-if="dataStore.loginType !== 'uid'" />
       <!-- 喜欢数量 -->
@@ -157,7 +178,14 @@ import {
   removeAccount,
 } from "@/utils/auth";
 import { useMobile } from "@/composables/useMobile";
-import { signinProgress, yunbei, yunbeiInfo, yunbeiToday } from "@/api/user";
+import {
+  dailySignin,
+  signinProgress,
+  yunbei,
+  yunbeiInfo,
+  yunbeiSign,
+  yunbeiToday,
+} from "@/api/user";
 
 const router = useRouter();
 const dataStore = useDataStore();
@@ -183,6 +211,8 @@ const userYunbeiData = ref<YunbeiMenuData>({
   signed: null,
 });
 const yunbeiLoading = ref(false);
+const yunbeiSignLoading = ref(false);
+const dailySignLoading = ref(false);
 
 const getSettledValue = <T,>(result: PromiseSettledResult<T>) => {
   return result.status === "fulfilled" ? result.value : null;
@@ -215,6 +245,25 @@ const getNumber = (source: unknown, keys: string[]) => {
 const getBoolean = (source: unknown, keys: string[]) => {
   const value = getNestedValue(source, keys);
   return typeof value === "boolean" ? value : null;
+};
+
+const getCode = (source: unknown): number | undefined => {
+  if (!source || typeof source !== "object") return undefined;
+  const data = source as Record<string, unknown>;
+  if (typeof data.code === "number") return data.code;
+  for (const value of Object.values(data)) {
+    const code = getCode(value);
+    if (code !== undefined) return code;
+  }
+  return undefined;
+};
+
+const stringifyResult = (source: unknown) => {
+  try {
+    return JSON.stringify(source);
+  } catch {
+    return "";
+  }
 };
 
 const displayValue = (value: number | null, suffix = "") => {
@@ -264,6 +313,53 @@ const yunbeiTip = computed(() => {
   const tomorrowText = tomorrow === null ? "" : `，明日可得 ${tomorrow} 云贝`;
   return `${signedText}${tomorrowText}`;
 });
+
+// 手动云贝签到
+const handleYunbeiSign = async () => {
+  if (yunbeiSignLoading.value) return;
+  yunbeiSignLoading.value = true;
+  try {
+    const result = await yunbeiSign();
+    const code = getCode(result);
+    const text = stringifyResult(result);
+    if (code === 200) {
+      window.$message.success("云贝签到成功");
+    } else if (text.includes("重复") || text.includes("已签到")) {
+      window.$message.info("今日已签到");
+    } else {
+      window.$message.error("云贝签到失败");
+    }
+    await loadYunbeiData(true);
+  } catch (error) {
+    console.error("云贝签到失败:", error);
+    window.$message.error("云贝签到失败");
+  } finally {
+    yunbeiSignLoading.value = false;
+  }
+};
+
+// 手动普通签到
+const handleDailySign = async () => {
+  if (dailySignLoading.value) return;
+  dailySignLoading.value = true;
+  try {
+    const result = await dailySignin();
+    const code = getCode(result);
+    const text = stringifyResult(result);
+    if (code === 200) {
+      window.$message.success("普通签到成功");
+    } else if (text.includes("重复") || text.includes("已签到")) {
+      window.$message.info("今日已签到");
+    } else {
+      window.$message.error("普通签到失败");
+    }
+  } catch (error) {
+    console.error("普通签到失败:", error);
+    window.$message.error("普通签到失败");
+  } finally {
+    dailySignLoading.value = false;
+  }
+};
 
 // 开启用户菜单
 const openMenu = () => {
