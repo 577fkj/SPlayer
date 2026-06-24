@@ -272,7 +272,7 @@ export const useGeneralSettings = (): SettingConfig => {
             key: "autoSignin",
             label: "自动签到",
             type: "switch",
-            description: "登录后每天自动执行一次安卓端签到",
+            description: "登录后每天自动执行一次桌面端签到",
             show: computed(() => settingStore.useOnlineService),
             value: computed({
               get: () => settingStore.autoSignin,

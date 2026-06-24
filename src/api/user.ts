@@ -1,4 +1,5 @@
 import request from "@/utils/request";
+import { buildNeteaseDesktopCookie, buildNeteaseDesktopUserAgent } from "@/utils/neteaseClient";
 
 /**
  * 获取用户账号信息
@@ -159,6 +160,7 @@ export interface SubmitPlayStateParams {
   progress?: number;
   playMode?: NeteasePlayMode;
   type?: "song";
+  cookie?: string;
   ua?: string;
 }
 
@@ -174,11 +176,13 @@ export const submitPlayState = (params: SubmitPlayStateParams) => {
 };
 
 // 每日签到
-export const dailySignin = (type: 0 | 1 = 0) => {
+export const dailySignin = (type: 0 | 1 = 1) => {
   return request({
     url: "/daily_signin",
     params: {
       type,
+      cookie: buildNeteaseDesktopCookie(),
+      ua: buildNeteaseDesktopUserAgent(),
       timestamp: Date.now(),
     },
   });

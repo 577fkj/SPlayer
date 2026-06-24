@@ -50,10 +50,13 @@ export const initNcmAPI = async (fastify: FastifyInstance) => {
     await ensureNcmConfig();
 
     try {
-      const params: Record<string, unknown> = {
+      const requestData: Record<string, unknown> = {
         ...(req.query as Record<string, unknown>),
         ...(req.body as Record<string, unknown>),
-        cookie: req.cookies,
+      };
+      const params: Record<string, unknown> = {
+        ...requestData,
+        cookie: requestData.cookie ?? req.cookies,
       };
 
       // 处理 multipart/form-data 文件上传

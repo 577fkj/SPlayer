@@ -30,7 +30,11 @@ server.interceptors.request.use(
     const settingStore = useSettingStore();
     if (!request.params) request.params = {};
     // Cookie
-    if (!request.params.noCookie && (isLogin() || getCookie("MUSIC_U") !== null)) {
+    if (
+      !request.params.noCookie &&
+      request.params.cookie === undefined &&
+      (isLogin() || getCookie("MUSIC_U") !== null)
+    ) {
       const cookie = `MUSIC_U=${getCookie("MUSIC_U")};os=pc;`;
       request.params.cookie = cookie;
     }

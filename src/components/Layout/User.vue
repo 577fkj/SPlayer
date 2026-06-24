@@ -286,13 +286,29 @@ const loadYunbeiData = async (force = false) => {
     const signData = getSettledValue(signResult);
     const todayData = getSettledValue(todayResult);
     const progressData = getSettledValue(progressResult);
-    const today = getNumber(todayData, ["todayPoint", "point", "amount", "gain"]);
+    const today = getNumber(todayData, ["todayPoint", "point", "amount", "gain", "shells"]);
+    const pcSigned = getBoolean(infoData, ["pcSign"]);
     userYunbeiData.value = {
-      balance: getNumber(infoData, ["yunbeiNum", "yunbei", "balance", "pointBalance"]),
-      streak: getNumber(signData, ["signInDays", "continuousDays", "continueDays", "signDays"]),
+      balance: getNumber(infoData, ["balance", "yunbeiNum", "yunbei", "pointBalance"]),
+      streak: getNumber(signData, [
+        "days",
+        "signInDays",
+        "continuousDays",
+        "continueDays",
+        "signDays",
+      ]),
       today,
-      tomorrow: getNumber(signData, ["tomorrowPoint", "nextPoint", "nextDayPoint", "nextReward"]),
-      signed: today !== null || getBoolean(progressData, ["signed", "todaySigned", "signIn"]),
+      tomorrow: getNumber(signData, [
+        "shells",
+        "tomorrowPoint",
+        "nextPoint",
+        "nextDayPoint",
+        "nextReward",
+      ]),
+      signed:
+        pcSigned ??
+        getBoolean(progressData, ["signed", "todaySigned", "signIn"]) ??
+        (today !== null && today > 0),
     };
   } catch (error) {
     console.error("获取云贝信息失败:", error);
@@ -322,9 +338,12 @@ const handleYunbeiSign = async () => {
     const result = await yunbeiSign();
     const code = getCode(result);
     const text = stringifyResult(result);
-    if (code === 200) {
-      window.$message.success("云贝签到成功");
-    } else if (text.includes("重复") || text.includes("已签到")) {
+    const signed = getBoolean(result, ["sign"]);
+    const gain = getNumber(result, ["yunbeiNum", "shells"]);
+    if (code === 200 && signed !== false) {
+      const gainText = gain === null ? "" : `，云贝 +${gain}`;
+      window.$message.success(`云贝签到成功${gainText}`);
+    } else if (signed === false || text.includes("重复") || text.includes("已签到")) {
       window.$message.info("今日已签到");
     } else {
       window.$message.error("云贝签到失败");
@@ -346,8 +365,10 @@ const handleDailySign = async () => {
     const result = await dailySignin();
     const code = getCode(result);
     const text = stringifyResult(result);
+    const point = getNumber(result, ["point"]);
     if (code === 200) {
-      window.$message.success("普通签到成功");
+      const pointText = point === null ? "" : `，经验 +${point}`;
+      window.$message.success(`普通签到成功${pointText}`);
     } else if (text.includes("重复") || text.includes("已签到")) {
       window.$message.info("今日已签到");
     } else {
