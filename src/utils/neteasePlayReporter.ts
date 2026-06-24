@@ -12,6 +12,10 @@ import { getPlayerInfoObj } from "@/utils/format";
 const REPORT_INTERVAL_SECONDS = 30;
 const MIN_SCROBBLE_DURATION_SECONDS = 30;
 const SESSION_ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const DESKTOP_APP_VERSION = "3.1.35";
+const DESKTOP_USER_AGENT =
+  `Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ` +
+  `Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/${DESKTOP_APP_VERSION}`;
 
 interface CurrentTrack {
   songId: number;
@@ -118,6 +122,7 @@ class NeteasePlayReporter {
       progress,
       playMode: this.getPlayMode(),
       type: "song",
+      ua: DESKTOP_USER_AGENT,
     })
       .then(() => {
         console.log("网易云播放状态已上报", track.songId, progress);

@@ -159,6 +159,7 @@ export interface SubmitPlayStateParams {
   progress?: number;
   playMode?: NeteasePlayMode;
   type?: "song";
+  ua?: string;
 }
 
 // 提交歌曲播放状态
