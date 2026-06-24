@@ -418,11 +418,9 @@ const openMenu = () => {
   }
 };
 
-watch(
-  () => [dataStore.userLoginStatus, dataStore.userData.userId],
-  syncDailySigned,
-  { immediate: true },
-);
+watch(() => [dataStore.userLoginStatus, dataStore.userData.userId], syncDailySigned, {
+  immediate: true,
+});
 
 // 用户喜欢数据
 const userLikeData = computed(() => {

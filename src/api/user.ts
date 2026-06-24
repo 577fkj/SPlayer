@@ -1,5 +1,4 @@
 import request from "@/utils/request";
-import { buildNeteaseDesktopCookie, buildNeteaseDesktopUserAgent } from "@/utils/neteaseClient";
 
 /**
  * 获取用户账号信息
@@ -140,7 +139,6 @@ export interface ScrobbleV1Params {
   level?: string;
   total?: number;
   cookie?: string;
-  ua?: string;
 }
 
 // 听歌打卡 V2
@@ -162,8 +160,6 @@ export interface SubmitPlayStateParams {
   progress?: number;
   playMode?: NeteasePlayMode;
   type?: "song";
-  cookie?: string;
-  ua?: string;
 }
 
 // 提交歌曲播放状态
@@ -183,8 +179,6 @@ export const dailySignin = (type: 0 | 1 = 1) => {
     url: "/daily_signin",
     params: {
       type,
-      cookie: buildNeteaseDesktopCookie(),
-      ua: buildNeteaseDesktopUserAgent(),
       timestamp: Date.now(),
     },
   });

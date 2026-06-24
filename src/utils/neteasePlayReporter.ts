@@ -7,14 +7,13 @@ import {
 import { useMusicStore, useSettingStore, useStatusStore } from "@/stores";
 import type { SongType } from "@/types/main";
 import { isLogin } from "@/utils/auth";
+import { getCookie } from "@/utils/cookie";
 import { getPlayerInfoObj } from "@/utils/format";
-import {
-  buildNeteaseDesktopCookie,
-  buildNeteaseDesktopUserAgent,
-  createNeteasePlaybackSessionId,
-} from "@/utils/neteaseClient";
 
 const REPORT_INTERVAL_SECONDS = 30;
+const MAX_SCROBBLE_POINT_SECONDS = 240;
+const SESSION_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const DEFAULT_NETEASE_DEVICE_NAME = "SPlayer";
 
 interface CurrentTrack {
   songId: number;
@@ -33,6 +32,42 @@ const toSeconds = (timeMs?: number): number => {
   return Math.max(0, Math.floor(timeMs / 1000));
 };
 
+const createPlaybackSessionId = (): string => {
+  let result = "";
+  const values = new Uint32Array(12);
+
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(values);
+    for (let i = 0; i < values.length; i++) {
+      result += SESSION_CHARS[values[i] % SESSION_CHARS.length];
+    }
+    return result;
+  }
+
+  for (let i = 0; i < 12; i++) {
+    result += SESSION_CHARS[Math.floor(Math.random() * SESSION_CHARS.length)];
+  }
+  return result;
+};
+
+const getNeteaseDeviceName = (): string => {
+  const settingStore = useSettingStore();
+  return settingStore.neteaseDeviceName.trim() || DEFAULT_NETEASE_DEVICE_NAME;
+};
+
+const getNeteaseScrobbleCookie = (): string => {
+  const cookieKeys = ["MUSIC_U", "NMTID", "__csrf"];
+  const cookies = cookieKeys
+    .map((key) => {
+      const value = getCookie(key);
+      return value ? `${key}=${value}` : "";
+    })
+    .filter(Boolean);
+
+  cookies.push(`mode=${getNeteaseDeviceName()}`);
+  return cookies.join("; ");
+};
+
 class NeteasePlayReporter {
   private currentTrack: CurrentTrack | null = null;
 
@@ -48,7 +83,7 @@ class NeteasePlayReporter {
     if (!this.currentTrack || this.currentTrack.songId !== song.id) {
       this.currentTrack = {
         songId: song.id,
-        sessionId: createNeteasePlaybackSessionId(),
+        sessionId: createPlaybackSessionId(),
         sourceId,
         duration,
         playedSeconds: 0,
@@ -98,6 +133,7 @@ class NeteasePlayReporter {
     this.updatePlayedSeconds(this.currentTrack, progress);
 
     this.reportState(progress);
+    this.reportScrobble(duration);
   }
 
   private reportState(progress: number, force = false) {
@@ -118,8 +154,6 @@ class NeteasePlayReporter {
       progress,
       playMode: this.getPlayMode(),
       type: "song",
-      cookie: buildNeteaseDesktopCookie(),
-      ua: buildNeteaseDesktopUserAgent(),
     })
       .then(() => {
         console.log("网易云播放状态已上报", track.songId, progress);
@@ -135,6 +169,7 @@ class NeteasePlayReporter {
   private reportScrobble(duration: number) {
     const track = this.currentTrack;
     if (!track || track.hasScrobbled || !this.isEnabled()) return;
+    if (!this.canReportScrobble(track, duration)) return;
 
     track.hasScrobbled = true;
     const reportSeconds = this.getReportSeconds(track);
@@ -163,8 +198,7 @@ class NeteasePlayReporter {
       time: Math.max(1, Math.min(reportSeconds, total || reportSeconds)),
       source: "list",
       level: settingStore.songLevel || "exhigh",
-      cookie: buildNeteaseDesktopCookie(),
-      ua: buildNeteaseDesktopUserAgent(),
+      cookie: getNeteaseScrobbleCookie(),
     };
 
     if (info?.name) params.name = info.name;
@@ -175,10 +209,18 @@ class NeteasePlayReporter {
     return params;
   }
 
+  private canReportScrobble(track: CurrentTrack, duration: number): boolean {
+    const reportSeconds = this.getReportSeconds(track);
+    const total = duration || track.duration;
+    if (total <= 0) return reportSeconds >= REPORT_INTERVAL_SECONDS;
+
+    const scrobblePoint = Math.min(total / 2, MAX_SCROBBLE_POINT_SECONDS);
+    return reportSeconds >= scrobblePoint;
+  }
+
   private getReportSeconds(track: CurrentTrack): number {
     const playedSeconds = Math.floor(track.playedSeconds);
-    const progressSeconds = Math.floor(track.lastProgress);
-    return Math.max(1, progressSeconds || playedSeconds);
+    return Math.max(1, playedSeconds);
   }
 
   private updatePlayedSeconds(track: CurrentTrack, progress: number) {
@@ -206,11 +248,11 @@ class NeteasePlayReporter {
   private isReportableSong(song?: SongType): song is SongType {
     return Boolean(
       this.isEnabled() &&
-        song &&
-        song.type === "song" &&
-        !song.path &&
-        song.id &&
-        Number.isSafeInteger(song.id),
+      song &&
+      song.type === "song" &&
+      !song.path &&
+      song.id &&
+      Number.isSafeInteger(song.id),
     );
   }
 

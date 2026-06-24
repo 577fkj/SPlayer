@@ -379,6 +379,27 @@ export const usePlaySettings = (): SettingConfig => {
               get: () => settingStore.scrobbleSong,
               set: (v) => (settingStore.scrobbleSong = v),
             }),
+            children: [
+              {
+                key: "neteaseDeviceName",
+                label: "上报设备名称",
+                type: "text-input",
+                description: "用于网易云播放上报的设备名称",
+                defaultValue: "SPlayer",
+                componentProps: {
+                  placeholder: "SPlayer",
+                  maxlength: 64,
+                  clearable: true,
+                },
+                value: computed({
+                  get: () => settingStore.neteaseDeviceName,
+                  set: (v) => {
+                    const deviceName = String(v || "").trim();
+                    settingStore.neteaseDeviceName = deviceName || "SPlayer";
+                  },
+                }),
+              },
+            ],
           },
           {
             key: "progressTooltipShow",

@@ -300,6 +300,8 @@ export interface SettingState {
   realIP: string;
   /** 是否打卡歌曲 */
   scrobbleSong: boolean;
+  /** 网易云上报设备名称 */
+  neteaseDeviceName: string;
   /** 动态封面 */
   dynamicCover: boolean;
   /** 是否使用 keep-alive */
@@ -557,6 +559,7 @@ export const useSettingStore = defineStore("setting", {
     smtcOpen: true,
     playSongDemo: false,
     scrobbleSong: false,
+    neteaseDeviceName: "SPlayer",
     dynamicCover: false,
     lyricFontSizeMode: "adaptive",
     lyricFontSize: 46,
