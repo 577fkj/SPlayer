@@ -91,23 +91,24 @@
         </n-text>
         <n-flex :size="8">
           <n-button
+            :disabled="dailySigned"
             :loading="dailySignLoading"
             secondary
             size="small"
             type="primary"
             @click.stop="handleDailySign"
           >
-            普通签到
+            {{ dailySigned ? "今日已签到" : "普通签到" }}
           </n-button>
           <n-button
-            v-if="userYunbeiData.signed !== true"
+            :disabled="userYunbeiData.signed === true"
             :loading="yunbeiSignLoading"
             secondary
             size="small"
             type="primary"
             @click.stop="handleYunbeiSign"
           >
-            云贝签到
+            {{ userYunbeiData.signed === true ? "今日已签到" : "云贝签到" }}
           </n-button>
         </n-flex>
       </n-flex>
@@ -186,6 +187,7 @@ import {
   yunbeiSign,
   yunbeiToday,
 } from "@/api/user";
+import { isSigninMarkedToday, markSigninToday } from "@/utils/signin";
 
 const router = useRouter();
 const dataStore = useDataStore();
@@ -213,6 +215,21 @@ const userYunbeiData = ref<YunbeiMenuData>({
 const yunbeiLoading = ref(false);
 const yunbeiSignLoading = ref(false);
 const dailySignLoading = ref(false);
+const dailySigned = ref(false);
+
+const getCurrentUserId = () => dataStore.userData.userId;
+
+const syncDailySigned = () => {
+  const userId = getCurrentUserId();
+  dailySigned.value = Boolean(userId && isSigninMarkedToday("daily", userId));
+};
+
+const markDailySigned = () => {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+  markSigninToday("daily", userId);
+  dailySigned.value = true;
+};
 
 const getSettledValue = <T,>(result: PromiseSettledResult<T>) => {
   return result.status === "fulfilled" ? result.value : null;
@@ -332,8 +349,9 @@ const yunbeiTip = computed(() => {
 
 // 手动云贝签到
 const handleYunbeiSign = async () => {
-  if (yunbeiSignLoading.value) return;
+  if (yunbeiSignLoading.value || userYunbeiData.value.signed === true) return;
   yunbeiSignLoading.value = true;
+  let signedToday = false;
   try {
     const result = await yunbeiSign();
     const code = getCode(result);
@@ -341,14 +359,17 @@ const handleYunbeiSign = async () => {
     const signed = getBoolean(result, ["sign"]);
     const gain = getNumber(result, ["yunbeiNum", "shells"]);
     if (code === 200 && signed !== false) {
+      signedToday = true;
       const gainText = gain === null ? "" : `，云贝 +${gain}`;
       window.$message.success(`云贝签到成功${gainText}`);
     } else if (signed === false || text.includes("重复") || text.includes("已签到")) {
+      signedToday = true;
       window.$message.info("今日已签到");
     } else {
       window.$message.error("云贝签到失败");
     }
     await loadYunbeiData(true);
+    if (signedToday) userYunbeiData.value.signed = true;
   } catch (error) {
     console.error("云贝签到失败:", error);
     window.$message.error("云贝签到失败");
@@ -359,7 +380,7 @@ const handleYunbeiSign = async () => {
 
 // 手动普通签到
 const handleDailySign = async () => {
-  if (dailySignLoading.value) return;
+  if (dailySignLoading.value || dailySigned.value) return;
   dailySignLoading.value = true;
   try {
     const result = await dailySignin();
@@ -368,8 +389,10 @@ const handleDailySign = async () => {
     const point = getNumber(result, ["point"]);
     if (code === 200) {
       const pointText = point === null ? "" : `，经验 +${point}`;
+      markDailySigned();
       window.$message.success(`普通签到成功${pointText}`);
     } else if (text.includes("重复") || text.includes("已签到")) {
+      markDailySigned();
       window.$message.info("今日已签到");
     } else {
       window.$message.error("普通签到失败");
@@ -386,11 +409,20 @@ const handleDailySign = async () => {
 const openMenu = () => {
   if (dataStore.userLoginStatus) {
     userMenuShow.value = !userMenuShow.value;
-    if (userMenuShow.value) loadYunbeiData();
+    if (userMenuShow.value) {
+      syncDailySigned();
+      loadYunbeiData();
+    }
   } else {
     openUserLogin();
   }
 };
+
+watch(
+  () => [dataStore.userLoginStatus, dataStore.userData.userId],
+  syncDailySigned,
+  { immediate: true },
+);
 
 // 用户喜欢数据
 const userLikeData = computed(() => {

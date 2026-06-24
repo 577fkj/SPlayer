@@ -5,6 +5,8 @@ import { getCookie } from "@/utils/cookie";
 const SIGNIN_KEY_PREFIX = "auto-signin";
 let isRunning = false;
 
+export type SigninTaskName = "daily" | "yunbei";
+
 const getTodayKey = () => {
   const date = new Date();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -12,15 +14,15 @@ const getTodayKey = () => {
   return `${date.getFullYear()}-${month}-${day}`;
 };
 
-const getRecordKey = (name: string, userId: number) => {
+const getRecordKey = (name: SigninTaskName, userId: number) => {
   return `${SIGNIN_KEY_PREFIX}:${name}:${userId}`;
 };
 
-const isMarkedToday = (name: string, userId: number) => {
+export const isSigninMarkedToday = (name: SigninTaskName, userId: number) => {
   return localStorage.getItem(getRecordKey(name, userId)) === getTodayKey();
 };
 
-const markToday = (name: string, userId: number) => {
+export const markSigninToday = (name: SigninTaskName, userId: number) => {
   localStorage.setItem(getRecordKey(name, userId), getTodayKey());
 };
 
@@ -50,18 +52,18 @@ const isSuccessOrSigned = (result: unknown) => {
 };
 
 const runDailySignin = async (userId: number) => {
-  if (isMarkedToday("daily", userId)) return;
+  if (isSigninMarkedToday("daily", userId)) return;
   const result = await dailySignin();
   if (isSuccessOrSigned(result)) {
-    markToday("daily", userId);
+    markSigninToday("daily", userId);
   }
 };
 
 const runYunbeiSignin = async (userId: number) => {
-  if (isMarkedToday("yunbei", userId)) return;
+  if (isSigninMarkedToday("yunbei", userId)) return;
   const result = await yunbeiSign();
   if (isSuccessOrSigned(result)) {
-    markToday("yunbei", userId);
+    markSigninToday("yunbei", userId);
   }
 };
 
