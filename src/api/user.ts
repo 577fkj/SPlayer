@@ -128,6 +128,50 @@ export const scrobble = (id: number, sourceid?: number, time?: number) => {
   });
 };
 
+export interface ScrobbleV1Params {
+  id: number;
+  time: number;
+  sourceid?: number;
+  source?: string;
+  name?: string;
+  artist?: string;
+  bitrate?: number;
+  level?: string;
+  total?: number;
+}
+
+// 听歌打卡 V2
+export const scrobbleV1 = (params: ScrobbleV1Params) => {
+  return request({
+    url: "/scrobble/v1",
+    params: {
+      ...params,
+      timestamp: Date.now(),
+    },
+  });
+};
+
+export type NeteasePlayMode = "list_loop" | "single_loop" | "random" | "order";
+
+export interface SubmitPlayStateParams {
+  id: number;
+  sessionId?: string;
+  progress?: number;
+  playMode?: NeteasePlayMode;
+  type?: "song";
+}
+
+// 提交歌曲播放状态
+export const submitPlayState = (params: SubmitPlayStateParams) => {
+  return request({
+    url: "/relay/play/state/submit",
+    params: {
+      ...params,
+      timestamp: Date.now(),
+    },
+  });
+};
+
 // 每日签到
 export const dailySignin = (type: 0 | 1 = 0) => {
   return request({

@@ -371,6 +371,16 @@ export const usePlaySettings = (): SettingConfig => {
             }),
           },
           {
+            key: "scrobbleSong",
+            label: "网易云播放上报",
+            type: "switch",
+            description: "播放在线歌曲时提交播放状态，并按进度完成听歌打卡",
+            value: computed({
+              get: () => settingStore.scrobbleSong,
+              set: (v) => (settingStore.scrobbleSong = v),
+            }),
+          },
+          {
             key: "progressTooltipShow",
             label: "显示进度条悬浮信息",
             type: "switch",

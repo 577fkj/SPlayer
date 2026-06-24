@@ -11,6 +11,7 @@ import { getPlayerInfoObj, getPlaySongData } from "@/utils/format";
 import { handleSongQuality, shuffleArray, sleep } from "@/utils/helper";
 import lastfmScrobbler from "@/utils/lastfmScrobbler";
 import { DJ_MODE_KEYWORDS } from "@/utils/meta";
+import neteasePlayReporter from "@/utils/neteasePlayReporter";
 import { calculateProgress } from "@/utils/time";
 import type { LyricLine } from "@applemusic-like-lyrics/lyric";
 import { type DebouncedFunc, throttle } from "lodash-es";
@@ -261,6 +262,7 @@ class PlayerController {
   ) {
     const statusStore = useStatusStore();
     const audioManager = useAudioManager();
+    const musicStore = useMusicStore();
     // 重置过渡状态
     this.isTransitioning = false;
     useAutomixManager().resetNextAnalysisCache();
@@ -289,6 +291,9 @@ class PlayerController {
       // 立即停止当前播放 (除非是 Crossfade)
       statusStore.playLoading = true;
       if (!options.crossfade) {
+        if (musicStore.playSong?.id && musicStore.playSong.id !== playSongData.id) {
+          neteasePlayReporter.stop(statusStore.currentTime, statusStore.duration);
+        }
         audioManager.stop();
       }
       // 立即更新 UI（歌曲信息、封面、歌词等），无需等待网络请求
@@ -702,6 +707,11 @@ class PlayerController {
       // 注意：failSkipCount 的重置移至 onTimeUpdate，确保有实际进度
       // Last.fm Scrobbler
       lastfmScrobbler.resume();
+      neteasePlayReporter.startPlaying(
+        musicStore.playSong,
+        statusStore.currentTime,
+        statusStore.duration,
+      );
       // IPC 通知
       playerIpc.sendPlayStatus(true);
       playerIpc.sendTaskbarState({ isPlaying: true });
@@ -721,6 +731,7 @@ class PlayerController {
       playerIpc.sendTaskbarMode("paused");
       playerIpc.sendTaskbarProgress(statusStore.progress);
       lastfmScrobbler.pause();
+      neteasePlayReporter.pause(statusStore.currentTime);
       console.log(`⏸️ [${musicStore.playSong?.id}] 歌曲暂停`);
     });
     // 拖动进度条
@@ -733,6 +744,10 @@ class PlayerController {
       useAutomixManager().resetAutomixScheduling("IDLE");
       console.log(`⏹️ [${musicStore.playSong?.id}] 歌曲结束`);
       lastfmScrobbler.stop();
+      neteasePlayReporter.stop(
+        statusStore.duration || statusStore.currentTime,
+        statusStore.duration,
+      );
       // 检查定时关闭
       if (this.checkAutoClose()) return;
       // 自动播放下一首
@@ -803,6 +818,8 @@ class PlayerController {
       }
       // Socket 进度
       playerIpc.sendSocketProgress(currentTime, duration);
+      // 网易云播放状态
+      neteasePlayReporter.updateProgress(currentTime, duration);
     }, 200);
     audioManager.addEventListener("timeupdate", this.onTimeUpdate);
     // 错误处理
@@ -988,6 +1005,7 @@ class PlayerController {
     const audioManager = useAudioManager();
     // 立即显示加载状态
     statusStore.playLoading = true;
+    neteasePlayReporter.stop(statusStore.currentTime, statusStore.duration);
     audioManager.stop();
     // 私人FM
     if (statusStore.personalFmMode) {
@@ -1228,6 +1246,7 @@ class PlayerController {
     const musicStore = useMusicStore();
     const audioManager = useAudioManager();
     // 重置状态
+    neteasePlayReporter.stop(statusStore.currentTime, statusStore.duration);
     audioManager.stop();
     statusStore.resetPlayStatus();
     musicStore.resetMusicData();
@@ -1287,6 +1306,9 @@ class PlayerController {
       // 若超出播放列表
       if (index >= playList.length) return;
       // 先停止当前播放
+      if (statusStore.playIndex !== index) {
+        neteasePlayReporter.stop(statusStore.currentTime, statusStore.duration);
+      }
       audioManager.stop();
       // 相同歌曲且需要播放
       if (statusStore.playIndex === index) {
