@@ -139,6 +139,8 @@ export interface ScrobbleV1Params {
   bitrate?: number;
   level?: string;
   total?: number;
+  cookie?: string;
+  ua?: string;
 }
 
 // 听歌打卡 V2

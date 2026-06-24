@@ -4,6 +4,7 @@ const DESKTOP_APP_VERSION = "3.1.35";
 const DESKTOP_APP_VERSION_CODE = "205293";
 const DESKTOP_NSM = "1.0.0";
 const DESKTOP_CHANNEL = "netease";
+const DESKTOP_DEVICE_MODE = "pc";
 const DESKTOP_STORAGE_KEY = "neteaseDesktopClientContext";
 const SESSION_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -73,7 +74,7 @@ const createDesktopClientContext = (): DesktopClientContext => {
     nnid: `${timestamp},${randomString(32)}`,
     nuid: randomString(32),
     deviceId: `${randomString(8)}-${randomString(4)}-${randomString(4)}-${randomString(4)}-${randomString(12)}`,
-    mode: "SPlayer",
+    mode: DESKTOP_DEVICE_MODE,
     osver: getDefaultOsVersion(),
   };
 };
@@ -86,14 +87,17 @@ const getDesktopClientContext = (): DesktopClientContext => {
     try {
       const parsed = JSON.parse(saved) as Partial<DesktopClientContext>;
       if (parsed.cid && parsed.nnid && parsed.nuid && parsed.deviceId) {
-        return {
+        const context = {
           cid: parsed.cid,
           nnid: parsed.nnid,
           nuid: parsed.nuid,
           deviceId: parsed.deviceId,
-          mode: parsed.mode || "SPlayer",
+          mode: parsed.mode && parsed.mode !== "SPlayer" ? parsed.mode : DESKTOP_DEVICE_MODE,
           osver: parsed.osver || getDefaultOsVersion(),
         };
+
+        localStorage.setItem(DESKTOP_STORAGE_KEY, JSON.stringify(context));
+        return context;
       }
     } catch {
       localStorage.removeItem(DESKTOP_STORAGE_KEY);
@@ -137,6 +141,7 @@ export const buildNeteaseDesktopCookie = (rawCookie = getStoredNeteaseCookie()):
     _ntes_nnid: context.nnid,
     _ntes_nuid: context.nuid,
     appver: `${DESKTOP_APP_VERSION}.${DESKTOP_APP_VERSION_CODE}`,
+    versioncode: DESKTOP_APP_VERSION_CODE,
     channel: DESKTOP_CHANNEL,
     clientSign: "",
     deviceId: context.deviceId,

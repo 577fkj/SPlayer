@@ -163,6 +163,8 @@ class NeteasePlayReporter {
       time: Math.max(1, Math.min(reportSeconds, total || reportSeconds)),
       source: "list",
       level: settingStore.songLevel || "exhigh",
+      cookie: buildNeteaseDesktopCookie(),
+      ua: buildNeteaseDesktopUserAgent(),
     };
 
     if (info?.name) params.name = info.name;
