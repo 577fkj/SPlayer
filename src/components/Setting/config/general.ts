@@ -268,6 +268,28 @@ export const useGeneralSettings = (): SettingConfig => {
               set: (v) => (settingStore.checkUpdateOnStart = v),
             }),
           },
+          {
+            key: "autoSignin",
+            label: "自动签到",
+            type: "switch",
+            description: "登录后每天自动执行一次安卓端签到",
+            show: computed(() => settingStore.useOnlineService),
+            value: computed({
+              get: () => settingStore.autoSignin,
+              set: (v) => (settingStore.autoSignin = v),
+            }),
+          },
+          {
+            key: "autoYunbeiSignin",
+            label: "自动签到云贝",
+            type: "switch",
+            description: "登录后每天自动执行一次云贝签到",
+            show: computed(() => settingStore.useOnlineService),
+            value: computed({
+              get: () => settingStore.autoYunbeiSignin,
+              set: (v) => (settingStore.autoYunbeiSignin = v),
+            }),
+          },
         ],
       },
       {

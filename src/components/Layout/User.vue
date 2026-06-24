@@ -1,7 +1,7 @@
 <template>
   <n-popover
     :show="userMenuShow"
-    style="padding: 12px; max-width: 240px"
+    style="padding: 12px; max-width: 280px"
     trigger="manual"
     @clickoutside="userMenuShow = false"
   >
@@ -53,6 +53,44 @@
         </n-flex>
       </n-flex>
       <n-divider />
+      <!-- 云贝信息 -->
+      <n-flex
+        v-if="dataStore.loginType !== 'uid'"
+        class="yunbei-info"
+        :size="8"
+        vertical
+        @click.stop
+      >
+        <n-flex align="center" justify="space-between">
+          <n-text class="subtitle" :depth="3">
+            <SvgIcon name="Cloud" />
+            云贝信息
+          </n-text>
+          <n-button
+            :loading="yunbeiLoading"
+            circle
+            quaternary
+            size="tiny"
+            @click.stop="loadYunbeiData(true)"
+          >
+            <template #icon>
+              <SvgIcon name="Refresh" />
+            </template>
+          </n-button>
+        </n-flex>
+        <n-grid :cols="3" :x-gap="8">
+          <n-grid-item v-for="item in yunbeiStats" :key="item.label">
+            <n-flex class="yunbei-item" align="center" vertical>
+              <n-text class="value">{{ item.value }}</n-text>
+              <n-text :depth="3">{{ item.label }}</n-text>
+            </n-flex>
+          </n-grid-item>
+        </n-grid>
+        <n-text v-if="yunbeiTip" class="yunbei-tip" :depth="3">
+          {{ yunbeiTip }}
+        </n-text>
+      </n-flex>
+      <n-divider v-if="dataStore.loginType !== 'uid'" />
       <!-- 喜欢数量 -->
       <div v-if="dataStore.loginType !== 'uid'" class="like-num">
         <div
@@ -119,6 +157,7 @@ import {
   removeAccount,
 } from "@/utils/auth";
 import { useMobile } from "@/composables/useMobile";
+import { signinProgress, yunbei, yunbeiInfo, yunbeiToday } from "@/api/user";
 
 const router = useRouter();
 const dataStore = useDataStore();
@@ -128,10 +167,109 @@ const { isDesktop } = useMobile();
 // 用户菜单展示
 const userMenuShow = ref<boolean>(false);
 
+interface YunbeiMenuData {
+  balance: number | null;
+  streak: number | null;
+  today: number | null;
+  tomorrow: number | null;
+  signed: boolean | null;
+}
+
+const userYunbeiData = ref<YunbeiMenuData>({
+  balance: null,
+  streak: null,
+  today: null,
+  tomorrow: null,
+  signed: null,
+});
+const yunbeiLoading = ref(false);
+
+const getSettledValue = <T,>(result: PromiseSettledResult<T>) => {
+  return result.status === "fulfilled" ? result.value : null;
+};
+
+const getNestedValue = (source: unknown, keys: string[]) => {
+  const stack = [source];
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || typeof current !== "object") continue;
+    const data = current as Record<string, unknown>;
+    for (const key of keys) {
+      if (data[key] !== undefined) return data[key];
+    }
+    stack.push(...Object.values(data));
+  }
+  return undefined;
+};
+
+const getNumber = (source: unknown, keys: string[]) => {
+  const value = getNestedValue(source, keys);
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const numberValue = Number(value);
+    return Number.isNaN(numberValue) ? null : numberValue;
+  }
+  return null;
+};
+
+const getBoolean = (source: unknown, keys: string[]) => {
+  const value = getNestedValue(source, keys);
+  return typeof value === "boolean" ? value : null;
+};
+
+const displayValue = (value: number | null, suffix = "") => {
+  return value === null ? "--" : `${value}${suffix}`;
+};
+
+// 加载云贝信息
+const loadYunbeiData = async (force = false) => {
+  if (yunbeiLoading.value || dataStore.loginType === "uid") return;
+  if (!force && userYunbeiData.value.balance !== null) return;
+  yunbeiLoading.value = true;
+  try {
+    const [infoResult, signResult, todayResult, progressResult] = await Promise.allSettled([
+      yunbeiInfo(),
+      yunbei(),
+      yunbeiToday(),
+      signinProgress(),
+    ]);
+    const infoData = getSettledValue(infoResult);
+    const signData = getSettledValue(signResult);
+    const todayData = getSettledValue(todayResult);
+    const progressData = getSettledValue(progressResult);
+    const today = getNumber(todayData, ["todayPoint", "point", "amount", "gain"]);
+    userYunbeiData.value = {
+      balance: getNumber(infoData, ["yunbeiNum", "yunbei", "balance", "pointBalance"]),
+      streak: getNumber(signData, ["signInDays", "continuousDays", "continueDays", "signDays"]),
+      today,
+      tomorrow: getNumber(signData, ["tomorrowPoint", "nextPoint", "nextDayPoint", "nextReward"]),
+      signed: today !== null || getBoolean(progressData, ["signed", "todaySigned", "signIn"]),
+    };
+  } catch (error) {
+    console.error("获取云贝信息失败:", error);
+  } finally {
+    yunbeiLoading.value = false;
+  }
+};
+
+const yunbeiStats = computed(() => [
+  { label: "云贝", value: displayValue(userYunbeiData.value.balance) },
+  { label: "连签", value: displayValue(userYunbeiData.value.streak, " 天") },
+  { label: "今日", value: displayValue(userYunbeiData.value.today) },
+]);
+
+const yunbeiTip = computed(() => {
+  const { signed, tomorrow } = userYunbeiData.value;
+  const signedText = signed === null ? "签到状态待刷新" : signed ? "今日已签到" : "今日待签到";
+  const tomorrowText = tomorrow === null ? "" : `，明日可得 ${tomorrow} 云贝`;
+  return `${signedText}${tomorrowText}`;
+});
+
 // 开启用户菜单
 const openMenu = () => {
   if (dataStore.userLoginStatus) {
     userMenuShow.value = !userMenuShow.value;
+    if (userMenuShow.value) loadYunbeiData();
   } else {
     openUserLogin();
   }
@@ -335,6 +473,30 @@ onBeforeMount(() => {
         font-weight: normal;
         margin-top: 4px;
       }
+    }
+  }
+  .yunbei-info {
+    .subtitle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+    .yunbei-item {
+      padding: 8px;
+      border-radius: 8px;
+      background-color: rgba(var(--primary), 0.06);
+      .value {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .n-text:last-child {
+        font-size: 12px;
+      }
+    }
+    .yunbei-tip {
+      font-size: 12px;
+      text-align: center;
     }
   }
   .account-list {

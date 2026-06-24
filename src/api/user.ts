@@ -182,3 +182,54 @@ export const dailySignin = (type: 0 | 1 = 0) => {
     },
   });
 };
+
+// 获取签到进度
+export const signinProgress = (moduleId = "1207signin-1207signin") => {
+  return request({
+    url: "/signin/progress",
+    params: {
+      moduleId,
+      timestamp: Date.now(),
+    },
+  });
+};
+
+// 获取云贝签到信息
+export const yunbei = () => {
+  return request({
+    url: "/yunbei",
+    params: {
+      timestamp: Date.now(),
+    },
+  });
+};
+
+// 获取云贝今日签到信息
+export const yunbeiToday = () => {
+  return request({
+    url: "/yunbei/today",
+    params: {
+      timestamp: Date.now(),
+    },
+  });
+};
+
+// 云贝签到
+export const yunbeiSign = () => {
+  return request({
+    url: "/yunbei/sign",
+    params: {
+      timestamp: Date.now(),
+    },
+  });
+};
+
+// 获取云贝账户信息
+export const yunbeiInfo = () => {
+  return request({
+    url: "/yunbei/info",
+    params: {
+      timestamp: Date.now(),
+    },
+  });
+};

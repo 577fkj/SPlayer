@@ -52,6 +52,10 @@ export interface SettingState {
   shareUrlFormat: "web" | "mobile";
   /** 启动时检查更新 */
   checkUpdateOnStart: boolean;
+  /** 自动签到 */
+  autoSignin: boolean;
+  /** 自动签到云贝 */
+  autoYunbeiSignin: boolean;
   /** 隐藏 VIP 标签 */
   hideVipTag: boolean;
   /** 歌词字体大小模式 */
@@ -513,6 +517,8 @@ export const useSettingStore = defineStore("setting", {
     showTaskbarProgress: false,
     taskbarLyricUseThemeColor: false,
     checkUpdateOnStart: true,
+    autoSignin: false,
+    autoYunbeiSignin: false,
     preventSleep: false,
     useKeepAlive: true,
     songLevel: "exhigh",

@@ -24,6 +24,7 @@ import { likeArtist } from "@/api/artist";
 import { likeAlbum } from "@/api/album";
 import { radioSub } from "@/api/radio";
 import router from "@/router";
+import { runAutoSignin } from "./signin";
 
 /**
  * 用户是否登录
@@ -248,6 +249,7 @@ export const updateUserData = async () => {
       // 每日推荐
       updateDailySongsData(),
     ]);
+    await runAutoSignin();
     // 若部分失败
     const hasFailed = allUserLikeResult.some((result) => result.status === "rejected");
     if (hasFailed) throw new Error("Failed to update some user data");
